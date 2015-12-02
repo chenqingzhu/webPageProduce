@@ -40,6 +40,13 @@ void printMsg(struct lableMsg msg)
     cout<<"beginIndex: "<<msg.beginIndex <<"  endIndex: " << msg.endIndex<<endl;
 }
 
+//标签名统一转化为小写字符
+string string_uptolower(string name)
+{
+    for(int i=0;i<name.size();++i)
+        name[i] = tolower(name[i]);
+    return name;
+}
 
 lableMsg getLableMsg(string &content,int findPostIndex)
 {
@@ -71,7 +78,7 @@ lableMsg getLableMsg(string &content,int findPostIndex)
         //  return lableMsg
         
         string lableName = content.substr(leftIndex+2,rightIndex-leftIndex-2);
-        struct lableMsg msg(lableName,leftIndex,rightIndex,RIGHTLABLE);
+        struct lableMsg msg(string_uptolower(lableName),leftIndex,rightIndex,RIGHTLABLE);
         return msg;
     }
     else
@@ -102,7 +109,7 @@ lableMsg getLableMsg(string &content,int findPostIndex)
             lableName = tmpcontent.substr(0, spaceIndex);
         else
             lableName = tmpcontent;
-        struct lableMsg msg(lableName,leftIndex,rightIndex,LEFTLABLE);
+        struct lableMsg msg(string_uptolower(lableName),leftIndex,rightIndex,LEFTLABLE);
         return msg;
     }
 }
@@ -199,12 +206,14 @@ int xmlParser(string files){
 
 
 
-//将标签特性转化为特征向量
+//将标签特性转化为特征向量   <id,文本长度，左标签长度，右标签长度，标点符号个数，层次数>
 vector<Feature> get_feature_vector(vector<struct lableFeature> lf)
 {
     vector<Feature> ret;
     for(int i=0;i<lf.size();i++)
     {
+        if(lf[i].lableName == "a")
+            continue;
         Feature tmpf;
         tmpf.push_back(lf[i].lableId);
         tmpf.push_back(lf[i].lableContentLength);
@@ -427,8 +436,7 @@ vector<struct lableFeature> get_content_lable_feature(string content){
 
 //获取标签特征-----加入包含标签
 /*
-如果完备标签去除时，其left标签和上一个标签中间有内容，将上一个标签改为叶子标签
-如果完备标签去除时，其右标签和下一个标签之间有内容，则将上一个标签改为叶子标签
+ 加入左标签时候，如果上一个标签和该标签之间有文本，则把该文本取出
 */
 vector<struct lableFeature> get_content_lable_feature_new(string content){
     vector<struct lableFeature> ret;
@@ -623,6 +631,8 @@ int get_content_real_length(string str)
     }
     return ret;
 }
+
+
 //获取标签特征-----加入包含标签
 /*
  1、如果是左标签，当stack不为空，且将左标签和top标签之间内容不为空，则将其内提出，左标签坐标前移
@@ -770,7 +780,7 @@ string  print_page_content_by_id(vector<struct lableFeature>lf,vector<int> id)
         cout<<"LableId:"<<id[i]<< "--size:"<<lf[id[i]].lableContentLength;
         cout<<"--lableName:"<<lf[id[i]].lableName<<"  --->"<< lf[id[i]].lableContent<<endl;
         
-        //cout<< lf[id[i]].lableContent[0] << "=="<<lf[id[i]].lableContent[1]<<endl;
+        //cout<<lf[id[i]].lableContent[0]<<"=="<<lf[id[i]].lableContent[1]<<endl;
         //cout<<"content2:"<<lf[id[i]].lableContent.substr(0,2)<<endl;
         //cout<<"content4:"<<lf[id[i]].lableContent.substr(0,4)<<endl;
         //cout<<"content6:"<<lf[id[i]].lableContent.substr(0,6)<<endl;
@@ -786,9 +796,10 @@ string  print_page_content_by_id(vector<struct lableFeature>lf,vector<int> id)
 
 
 //调整正文簇内lableID
-//1、同层次最多
+//1、同层次最多  2、标签为strong或者最多lableName 3、标签lable大于平均lableLevel  4、标签不是h1/h2/h3/h4/h5/h6等
 vector<int> get_page_text_cluster_id_after_produce(vector<struct lableFeature>lf,vector< vector<int> > cluster,int k)
 {
+    cout<<"K 簇： "<< k << endl;
     vector<int> ic = cluster[k-1];
     vector<int> ret;
     //if(ic.size() <= 1)
@@ -800,11 +811,14 @@ vector<int> get_page_text_cluster_id_after_produce(vector<struct lableFeature>lf
     for(int i=0;i<ic.size();i++)
     {
         string lableName_tmp = lf[ic[i]].lableName;
+        if(lableName_tmp=="h" ||lableName_tmp=="h1" || lableName_tmp=="h2" ||lableName_tmp=="h3" ||lableName_tmp=="h4" ||lableName_tmp=="h5"||lableName_tmp=="h6" ||lableName_tmp=="h8" || lableName_tmp=="h9" || lableName_tmp=="a" )
+            continue;
         lable_map[lableName_tmp].push_back(lf[ic[i]].lableLevelNumber);
         if(lable_map[lableName].size() < lable_map[lableName_tmp].size())
             lableName = lableName_tmp;
         //lable_level_map[lableName] = lf[ic[i]].lableLevelNumber;
     }
+    
     /*
     //确定次数最多的标签名为正文标签名
     map<string,vector<int> >::iterator iter = lable_map.begin();
@@ -817,6 +831,7 @@ vector<int> get_page_text_cluster_id_after_produce(vector<struct lableFeature>lf
         }
     }
     */
+    
     int min_id=-1,max_id =-1;
     bool flag_min = true;
     //用于确定正文在第几层
@@ -834,9 +849,11 @@ vector<int> get_page_text_cluster_id_after_produce(vector<struct lableFeature>lf
             text_lable_level_num = lableName_level_time_map[lableName_level_vect[i]] ;
         }
     }
-    
-    
+
+    cout<<"lableName: "<< lableName<<endl;
+    cout<<"text_lable_level: "<<text_lable_level<<endl;
     map<int,int>  lableLevelMap;
+    cout<<"ic size: " << ic.size()<<endl;
     for(int i=0;i<ic.size();i++)
     {
         string lable = lf[ic[i]].lableName;
@@ -853,18 +870,7 @@ vector<int> get_page_text_cluster_id_after_produce(vector<struct lableFeature>lf
         }
     }
     cout << "init min_id: "<<min_id<< "    max_id:"<<max_id<<endl;
-    /*
 
-    map<int,int>::iterator iter_level = lableLevelMap.begin();
-    text_lable_level = iter_level->first;
-    
-    for(;iter_level!= lableLevelMap.end(); iter_level++)
-    {
-        if(iter_level->second > lableLevelMap[text_lable_level])
-            text_lable_level = iter_level->first;
-    }
-    
-    */
     
     int beginID = ic[min_id];
     int endID = ic[ max_id ];
@@ -876,59 +882,100 @@ vector<int> get_page_text_cluster_id_after_produce(vector<struct lableFeature>lf
     for(int i=beginID-1;i>=0; i--)
     {
         cout<<"lfi name:"<<lf[i].lableName<<endl;
-        if(lf[i].lableName == lableName)
+        if(lf[i].lableName == lableName   || lf[i].lableName =="strong")
         {
             beginID = i;
             continue;
         }
+        if(lf[i].lableContentLength > 100)
+        {
+            beginID =i;
+            continue;
+        }
+        if(lf[i].lableLevelNumber < text_lable_level || lf[i].lableLevelNumber > text_lable_level +2)
+        {
+            beginID = i+1;
+            break;
+        }
+        
         if(lf[i].lableName == "h1" || lf[i].lableName == "h2" || lf[i].lableName == "h3"||
            lf[i].lableName == "h4" ||lf[i].lableName == "h5" || lf[i].lableName == "h6" ||
-           lf[i].lableName == "h")
+           lf[i].lableName == "h" || lf[i].lableName == "a")
         {
-            beginID = i+1;
-            break;
+            //beginID = i+1;
+            //break;
+            beginID = i;
+            continue;
         }
-        if(lf[i].lableLevelNumber < text_lable_level || lf[i].lableLevelNumber > text_lable_level +1)
+         
+        /*
+        if(lf[i].lableLevelNumber >= text_lable_level && lf[i].lableLevelNumber <= text_lable_level +2)
         {
-            beginID = i+1;
-            break;
+            beginID = i;
+            continue;
         }
-        if(lf[i].lableName != lableName && lf[i].lableName != "strong")
+        else //
+         */
+
+        if(lf[i].lableName != lableName && lf[i].lableName != "strong" && lf[i].lableName != "p")
         {
             beginID = i+1;
             break;
         }
     }
     
+    int last_end = endID;
     for(int i= endID+1; i<lf.size();i++)
     {
-        if(lf[i].lableName == lableName)
+        if(lf[i].lableName == lableName   || lf[i].lableName =="strong")
         {
             endID = i;
+            last_end = endID;
             continue;
         }
-        
+        if(lf[i].lableContentLength > 100)
+        {
+            endID =i;
+            continue;
+        }
         if(lf[i].lableName == "h1" || lf[i].lableName == "h2" || lf[i].lableName == "h3"||
            lf[i].lableName == "h4" ||lf[i].lableName == "h5" || lf[i].lableName == "h6" ||
            lf[i].lableName == "h")
+        {
+            endID = i-1;
+            break;
+        }
+        
+        /*
+        //if(lf[i].)
+        if(lf[i].lableLevelNumber >= text_lable_level)
+        {
+            for(int j=endID+1;j< lf.size()&& j<endID+3; j++)
+            {
+                
+            }
+            endID = i;
+            continue;
+        }
+        else{
+            endID = i-1;
+            break;
+        }
+        */
+        if(lf[i].lableLevelNumber < text_lable_level || lf[i].lableLevelNumber >= text_lable_level+2)
         {
             endID = i-1;
             break;
         }
 
-        
-        if(lf[i].lableLevelNumber < text_lable_level)
+        if(lf[i].lableName != lableName && lf[i].lableName != "strong" && lf[i].lableName !="p" && lf[i].lableName !="img")
         {
             endID = i-1;
             break;
         }
-        if(lf[i].lableName != lableName && lf[i].lableName != "strong")
-        {
-            endID = i-1;
-            break;
-        }
+        break;
     }
-    
+    cout << "init beginID: "<<beginID<< "    endID:"<<endID<<endl;
     for(int i=beginID;i<=endID;i++)
         ret.push_back(i);
     
@@ -950,7 +997,7 @@ int save_content2file(string file_path_name,string content)
     
 }
 
-int main_loop_url(string url,int kcluster = 3)
+int main_loop_url(string url,int kcluster = 4)
 {
     //请求爬去html网页
     getWebPageClass gwp;
@@ -968,7 +1015,7 @@ int main_loop_url(string url,int kcluster = 3)
     
     //网页html预处理
     contentProcess cp;
-    cp.parse_content_test(utf_8_content);
+    cp.parse_content_avoid_over_delete(utf_8_content);
     
     cout<<"content size after process : "<<utf_8_content.size()<<endl;
     
@@ -991,7 +1038,9 @@ int main_loop_url(string url,int kcluster = 3)
     try
     {
         kmeansCluster kmeans(feature_vector,KC);
-        kmeans.kmeans_function();
+        //kmeans.kmeans_function();
+        kmeans.kmeans_internal();
+        KC = kmeans.get_K();
         for(int i=1;i<=KC;i++)
             kmeans.print_kmeans_cluster(i);
         
@@ -1031,7 +1080,7 @@ int main_loop_url(string url,int kcluster = 3)
             
             string tmp("              新闻标题： ");
             page_text = tmp + web_page_title + page_text;
-            ret = save_content2file("/Users/pc/get_clear_page.html", page_text);
+            ret = save_content2file("/Users/pc/get_page_text.html", page_text);
             if(ret == 1)
                 cout<< "save page text  file ok"<<endl;
             else
@@ -1054,7 +1103,7 @@ int main_loop_url(string url,int kcluster = 3)
     return 1;
 }
 
-int main_loop_file(string filepath,int kcluster = 3)
+int main_loop_file(string filepath,int kcluster = 5)
 {
     //请求爬去html网页
     getWebPageClass gwp;
@@ -1070,7 +1119,7 @@ int main_loop_file(string filepath,int kcluster = 3)
     
     //网页html预处理
     contentProcess cp;
-    cp.parse_content_test(utf_8_content);
+    cp.parse_content_avoid_over_delete(utf_8_content);
     
     cout<<"content size after process : "<<utf_8_content.size()<<endl;
     
@@ -1081,19 +1130,19 @@ int main_loop_file(string filepath,int kcluster = 3)
         cout<< "save clear  file error"<<endl;
     
     //vector<struct lableFeature> lable_feature = get_content_lable_feature(utf_8_content);
-    
-    
     vector<struct lableFeature> lable_feature = get_content_lable_feature_1124(utf_8_content);
     for(int i=0;i<lable_feature.size();i++)
         print_lable_feature(lable_feature[i]);
     
     vector<Feature> feature_vector = get_feature_vector(lable_feature);
     
-    int KC =kcluster;
+    int max_kc =kcluster;
     try
     {
-        kmeansCluster kmeans(feature_vector,KC);
-        kmeans.kmeans_function();
+        kmeansCluster kmeans(feature_vector,max_kc);
+        //kmeans.kmeans_function();
+        kmeans.kmeans_internal();
+        int KC = kmeans.get_K();
         for(int i=1;i<=KC;i++)
             kmeans.print_kmeans_cluster(i);
         
@@ -1133,7 +1182,7 @@ int main_loop_file(string filepath,int kcluster = 3)
             
             string tmp("              新闻标题： ");
             page_text = tmp + web_page_title +"\n\n" + page_text;
-            ret = save_content2file("/Users/pc/get_clear_page.html", page_text);
+            ret = save_content2file("/Users/pc/get_page_text.html", page_text);
             if(ret == 1)
                 cout<< "save page text  file ok"<<endl;
             else
@@ -1152,7 +1201,6 @@ int main_loop_file(string filepath,int kcluster = 3)
         else if(e == 3)
             cout << "this page only has less two lables,maybe it's not a new page\n"<<endl;
     }
-    
     return 1;
 }
 
@@ -1168,6 +1216,9 @@ vector<string> get_test_url_vect()
     urlVect.push_back(url0);
     urlVect.push_back(url1);
     urlVect.push_back(url2);
+    //新浪博客  特殊网页：大小写标签混乱一起
+    string url2_0("http://blog.sina.com.cn/s/blog_aa875eee0102wftg.html?tj=1");
+    urlVect.push_back(url2_0);
     //百度新闻
     string url3("http://www.baidu.com/s?ie=utf-8&f=8&rsv_bp=1&tn=ubuntuu_cb&wd=%E7%BD%91%E7%BB%9C%E7%88%AC%E8%99%AB%20%20%E6%96%87%E6%9C%AC%E4%B9%B1%E7%A0%81%20C%2B%2B&rsv_pq=f7b9acd800000ed2&rsv_t=e7254jg%2BHKV2oGILj6QU1qUUY8RmgxC18gdzcLQ5%2F%2F4MrxgSJYq5FZqJzFVCrTTvOA&rsv_enter=1&rsv_sug3=27&rsv_sug1=5&rsv_sug2=0&inputT=9319&rsv_sug4=10773");
     urlVect.push_back(url3);
@@ -1233,23 +1284,38 @@ vector<string> get_test_url_vect()
     //强国网
     string url23("http://www.cnqiang.com/junshi/junqing/201511/01256156.html");
     string url24("http://www.cnqiang.com/junshi/zhanlue/201511/01256154.html");
+    string url25("http://www.cnqiang.com/junshi/zhanlue/201512/01257001.html");
+    string url26("http://www.cnqiang.com/junshi/zhanlue/201512/01256999.html");
     urlVect.push_back(url23);
     urlVect.push_back(url24);
+    urlVect.push_back(url25);
+    urlVect.push_back(url26);
+    
+    //谷歌新闻
+    string url27("http://www.chicagotribune.com/news/local/politics/ct-rahm-emanuel-police-task-force-20151130-story.html");
+    //reuters 新闻
+    string url28("http://www.reuters.com/article/2015/12/01/us-global-markets-idUSKBN0TK30S20151201#Fi1Q1pvcKm6QxdIp.97");
+    urlVect.push_back(url27);
+    urlVect.push_back(url28);
     return urlVect;
 }
 int main()
 {
     vector<string> urlVect = get_test_url_vect();
     string loop_url("url");
-    int loop_time = 0;
+    int loop_time = 21;
     while(loop_time < urlVect.size())
     {
         main_loop_url(urlVect[loop_time]);
+        cout<<urlVect[loop_time]<<endl;
         loop_time ++;
     }
-    main_loop_url(urlVect[11]);
-    main_loop_file("/Users/pc/qqfile.html");
+    main_loop_url(urlVect[24],7);
     
+    //main_loop_url("http://cjp1989.iteye.com/blog/1897983",10);
+    string urlGoogle("http://www.chicagotribune.com/news/local/politics/ct-rahm-emanuel-police-task-force-20151130-story.html");
+    //main_loop_url("http://hackathon.ele.me/intro");
+    //main_loop_file("/Users/pc/reutersFile.html",20);
     //xmlParser("/Users/pc/get_clear_page.html");
     return 1;
 }

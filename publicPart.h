@@ -17,6 +17,7 @@
 #include <stack>
 #include <iostream>
 #include <fstream>
+#include <ctype.h>
 
 using namespace std;
 #define LEFTLABLE 1   //左标签
