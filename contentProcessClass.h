@@ -366,6 +366,7 @@ public:
                 if(divUlEndIndex == string::npos)
                 {
                     int tmp_end = content.find(">",divUlBeginIndex);
+                    
                     if(tmp_end == string::npos)
                         content.erase(divUlBeginIndex,tmp_end - divUlBeginIndex +1);
                     else
@@ -628,7 +629,6 @@ public:
         {
             return 0;
         }
-        
         stack<string> divUlStack;
         stack<int> indexUlStack;
         int divUlBeginIndex = content.find("<table",findPostIndex);
@@ -1349,7 +1349,7 @@ public:
         {
             //if(str[i] == '\r')
             //  cout<<"change line\n";
-            if(str[i] ==' ' || str[i] == '\t' || str[i] == '\r' || str[i] =='\n' || str[i] =='-' || str[i] == '|')
+            if(str[i] ==' ' || str[i] == '\t' || str[i] == '\r' || str[i] =='\n' || str[i] =='-' || str[i] == '|'|| str[i] == '['|| str[i] == ']')
                 continue;
             else
                 return false;
@@ -1910,6 +1910,12 @@ public:
         cout<<"<去除 <br /> 内容 完成"<<endl;
         
         delete_nbsp_lable(content);
+        
+        delete_font_lable(content);
+        
+        //去除img标签
+        delete_img_lable(content);
+        cout<<"<去除 <img  ....  />内容 完成"<<endl;
         
         //修复标签
         repair_html_lable(content);

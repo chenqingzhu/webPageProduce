@@ -31,16 +31,15 @@ private:
     int max_k; //最大的迭代K值
     
 public:
-    kmeansCluster(vector<Feature> fv,int k = 6):initFeatureVector(fv),max_k(k),dataNum(0),SSE_error(-1)
+    kmeansCluster(vector<Feature> fv,bool need_init_2_one = true):initFeatureVector(fv),dataNum(0),SSE_error(-1)
     {
         K = 2;
         //初始化
-        if(max_k<=0 || initFeatureVector.size() == 0)
+        if(initFeatureVector.size() == 0)
         {
-            
             throw 1;
         }
-        if(initFeatureVector.size() <= 2)
+        if(initFeatureVector.size() < 2)
             throw 3;
         /*
         if(featureVector.size() < K)
@@ -49,8 +48,12 @@ public:
         }
         */
         dimNum = initFeatureVector[0].size();
-        process_feature_vector();
         
+        //是否需要将特征向量进行归一化
+        if(need_init_2_one)
+            process_feature_vector();
+        else
+            featureVector = initFeatureVector;
     }
     
     ~kmeansCluster()
@@ -86,6 +89,12 @@ public:
     int get_K(){
         return K;
     }
+    
+    //获取聚类簇的误差SSE
+    int get_SSE_error(){
+        return SSE_error;
+    }
+    
     //打印聚类质心和簇结果
     void print_kmeans_cluster(int numk)
     {
@@ -127,13 +136,21 @@ public:
         }
     }
     
-    //Kmeans 聚类算法实现
-    void kmeans_function()
+    //Kmeans 聚类算法实现  将数据聚合为need_k类  随机获取初始聚类中心
+    void kmeans_function(int need_k = 3)
     {
-        K = 3;// 单次聚类就默认选择聚成三类
+    
+        K = need_k;// 单次聚类就默认选择聚成三类
+        if(featureVector.size() < K)
+        {
+            throw 2;
+            return;
+        }
+        
         vector< vector<Feature> > tmpCluster(K,vector<Feature>());
         int lable = 0;
         get_random_k_center();
+        //get_k_center_by_kmeans_plus_plus();
         cout<<"初始化质心: "<<endl;
         print_center();
         
@@ -148,7 +165,7 @@ public:
         double old_sse = -1;
         double new_sse = SSE_error;
         int interal_time = 1;
-        while( (new_sse - old_sse) >= 1 || (new_sse - old_sse) <= -1 )
+        while( (new_sse - old_sse) >= 0.1 || (new_sse - old_sse) <= -0.1 )
         {
             cout<<"第 "<< interal_time++<<" 迭代开始"<<endl;
             cluster = tmpCluster;
@@ -173,14 +190,21 @@ public:
         cout<<"聚类结束，均方误差："<<SSE_error<<endl;
     }
     
-    //Kmeans 聚类算法实现
-    void kmeans_function_new(int internal_k)
+    //Kmeans 聚类算法实现  将数据聚合为need_k类  运用kmeans＋＋ 获取初始聚类中心
+    void kmeans_plus_plus_function(int need_k = 3)
     {
-        K = internal_k;
+        
+        K = need_k;// 单次聚类就默认选择聚成三类
+        if(featureVector.size() < K)
+        {
+            throw 2;
+            return;
+        }
         vector< vector<Feature> > tmpCluster(K,vector<Feature>());
         int lable = 0;
-        get_random_k_center();
-        cout<<"初始化质心: "<<endl;
+        //get_random_k_center();
+        get_k_center_by_kmeans_plus_plus();
+        //cout<<"--------------------------初始化质心: "<<endl;
         //print_center();
         
         for(int i=0;i<featureVector.size(); i++)
@@ -194,7 +218,55 @@ public:
         double old_sse = -1;
         double new_sse = SSE_error;
         int interal_time = 1;
-        while( (new_sse - old_sse) >= 1 || (new_sse - old_sse) <= -1 )
+        //cout<<"SSE_error: "<<SSE_error<<endl;
+        while( (new_sse - old_sse) >= 0.1 || (new_sse - old_sse) <= -0.1 )
+        {
+            //cout<<"第 "<< interal_time++<<" 迭代开始"<<endl;
+            cluster = tmpCluster;
+            SSE_error = new_sse;
+            //print_center();
+            update_cluster_center();
+            
+            old_sse = new_sse;
+            //vector< vector<Feature> > tmpCluster(K,vector<Feature>());
+            for(int i=0;i<K;i++)
+                tmpCluster[i].clear();
+            for(int i=0;i<featureVector.size(); i++)
+            {
+                lable = cluster_of_feature(featureVector[i]);
+                tmpCluster[lable].push_back(featureVector[i]);
+            }
+            new_sse = get_SSE(tmpCluster);
+            //cout<<"SSE_error: "<<new_sse<<endl;
+        }
+        get_SSE(cluster);
+        
+        //cout<<"--------------------------聚类结束，均方误差："<<SSE_error<<endl;
+    }
+    
+    //Kmeans
+    void kmeans_function_for_iternal(int internal_k = 3)
+    {
+        K = internal_k;
+        vector< vector<Feature> > tmpCluster(K,vector<Feature>());
+        int lable = 0;
+        //get_random_k_center();
+        get_k_center_by_kmeans_plus_plus();
+        cout<<"初始化质心: "<<endl;
+        print_center();
+        
+        for(int i=0;i<featureVector.size(); i++)
+        {
+            lable = cluster_of_feature(featureVector[i]);
+            tmpCluster[lable].push_back(featureVector[i]);
+        }
+        cluster = tmpCluster;
+        SSE_error = get_SSE(cluster);
+        update_cluster_center();
+        double old_sse = -1;
+        double new_sse = SSE_error;
+        int interal_time = 1;
+        while( (new_sse - old_sse) >= 0.1 || (new_sse - old_sse) <= -0.1)
         {
             //cout<<"第 "<< interal_time++<<" 迭代开始"<<endl;
             cluster = tmpCluster;
@@ -221,22 +293,25 @@ public:
     
     
     
-    //迭代K值，选SSE最小的K值
+    //迭代K值，选SSE最小的K值,采用kmeans＋＋算法
     
-    void kmeans_internal()
+    void kmeans_with_select_k_function(int max_k_internal = 6)
     {
+        max_k = max_k_internal;
         int internal_k = 2;
-        kmeans_function_new(internal_k);
+        vector<double> SSE_vect;
+        kmeans_plus_plus_function(internal_k);
         
         vector<Feature> last_kCenter = kCenter;
         vector< vector<Feature> > last_cluster = cluster;
         int last_k = internal_k;
         double last_SSE = SSE_error;
-        
-        while(++internal_k <= max_k){
+        internal_k = 3;
+        SSE_vect.push_back(SSE_error);
+        while(internal_k <= max_k){
             if(internal_k > featureVector.size())
                 break;
-            kmeans_function_new(internal_k);
+            kmeans_plus_plus_function(internal_k);
             if (SSE_error <= last_SSE)
             {
                 last_SSE = SSE_error;
@@ -244,6 +319,8 @@ public:
                 last_cluster = cluster;
                 last_kCenter = kCenter;
             }
+            SSE_vect.push_back(SSE_error);
+            internal_k ++;
         }
         
         SSE_error = last_SSE;
@@ -251,7 +328,9 @@ public:
         kCenter = last_kCenter;
         cluster = last_cluster;
         
-        cout<<"最终聚类中心数量为："<< K <<endl;
+        for(int i=0;i<SSE_vect.size(); i++)
+            cout<<"K = "<<i+2<<"     SSE_error = "<<SSE_vect[i]<<endl;
+        cout<<"最终聚类中心数量选择为："<< K <<endl;
     }
     
     //根据簇中心向量的标签文本平均长度来确定文本簇，目前长度最长的来定义为特征簇（待优化）
@@ -275,7 +354,7 @@ private:
     //随即获取初始化的聚类中心
     void get_random_k_center()
     {
-        srand((unsigned int) time(NULL));
+        srand((unsigned int) time(NULL) + 20000 * K);
         vector<int> tmpvect;
         for(int i=0;i<featureVector.size();i++)
             tmpvect.push_back(i);
@@ -288,6 +367,36 @@ private:
         }
     }
     
+    void get_k_center_by_kmeans_plus_plus()
+    {
+        srand((unsigned int)time(NULL) + 20000*K);
+        //set<int> had_select_id;
+        vector<int> tmpvect;
+        for(int i=0;i<featureVector.size();i++)
+            tmpvect.push_back(i);
+        kCenter.clear();
+        int select = rand() %(tmpvect.size());
+        kCenter.push_back(featureVector[ tmpvect[ select ] ]);
+        Feature tmp_center = featureVector[ tmpvect[ select ] ];
+        tmpvect.erase(tmpvect.begin() + select);
+        for(int i=1; i<K; ++i)
+        {
+            double max_distance = get_dist_XY(tmp_center, featureVector[ tmpvect[ 0 ] ]);
+            select = 0;
+            for(int j=1; j<tmpvect.size(); j++)
+            {
+                double tmp_distance = get_dist_XY(tmp_center, featureVector[ tmpvect[ j ] ]);
+                if(tmp_distance > max_distance )
+                {
+                    select = j;
+                    max_distance = tmp_distance;
+                }
+            }
+            kCenter.push_back(featureVector[ tmpvect[ select ] ]);
+            Feature tmp_center = featureVector[ tmpvect[ select ] ];
+            tmpvect.erase(tmpvect.begin() + select);
+        }
+    }
 
     //计算两个元组间的欧几里距离
     double get_dist_XY(const Feature &f1, const Feature &f2)
@@ -379,7 +488,6 @@ private:
         {
             for(int j=1;j<dimNum;j++)
             {
-                
                 featureVector[i][j] = (featureVector[i][j] - min_feature[j])/between[j] * feature_weights[j];
             }
         }
