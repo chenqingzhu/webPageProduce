@@ -9,9 +9,9 @@
 #ifndef spiter_kmeansCluster_h
 #define spiter_kmeansCluster_h
 #include <string>
-#include <vector>
+
 #include <iostream>
-#include <math.h>
+
 #include <stdlib.h>
 #include "publicPart.h"
 using namespace std;
@@ -408,6 +408,7 @@ private:
         }
         return sqrt(ret);
     }
+    
     //根据质心决定当前元祖属于哪个簇
     int cluster_of_feature(const Feature & fea)
     {

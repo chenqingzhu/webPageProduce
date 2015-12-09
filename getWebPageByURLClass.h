@@ -116,6 +116,7 @@ public:
     string get_html_content_by_url(string url)
     {
         //分解URL，获取协议，域名和资源路径
+        cout<<"1\n";
         page_url = url;
         
         parse_url(url);
@@ -275,6 +276,7 @@ public:
             cout<< "save  html file ok"<<endl;
             return "";
         }
+        //cout<<"--------------------pp-------\n"<<utf_8_content.substr(1,1000);
         int titlestart = utf_8_content.find("<title>");
         int titleend = utf_8_content.find("</title>");
         cout<< "titlestart: "<< titlestart<<endl;
@@ -285,8 +287,10 @@ public:
         cout<<"codingType:  "<<codingType<<endl;
         web_page_title = title;
         
-        int  htmlIndex_t = utf_8_content.find("<html");
+        //cout<<"++++++++++++++++++++++++++++++++\n"<<utf_8_content<<endl;
+        int  htmlIndex_t = utf_8_content.find("html");
         utf_8_content.erase(utf_8_content.begin(),utf_8_content.begin() + htmlIndex_t );
+        utf_8_content = "<" + utf_8_content;
         
         fstream  ifile;
         ifile.open("/Users/pc/get_html_page.html",ios_base::out|ios::out );
@@ -299,6 +303,7 @@ public:
         ifile << utf_8_content;
         ifile.close();
         cout<< "save  html file ok"<<endl;
+        
         return utf_8_content;
     }
     

@@ -14,11 +14,12 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <set>
 #include <stack>
 #include <iostream>
 #include <fstream>
 #include <ctype.h>
-
+#include <math.h>
 using namespace std;
 #define LEFTLABLE 1   //左标签
 #define RIGHTLABLE 2 //右标签
@@ -29,14 +30,13 @@ typedef vector<double> Feature;
 //标签结构体
 struct lableMsg{
     string lableName;   //标签名
-    int beginIndex;  // 标签开始位置
+    int beginIndex;  //标签开始位置
     int endIndex;   //标签结束位置
     int lableFlag;   //左右标签标识
     bool leafLableFlag; //是否是叶子标签
     lableMsg (string name="", int begin=0, int end=0,int flag=0,bool leafFlag=true) : lableName(name), beginIndex(begin),
     endIndex(end),lableFlag(flag),leafLableFlag(leafFlag)
-    {
-    }
+    {}
 };
 
 //标签内容结构体

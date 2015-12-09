@@ -58,6 +58,32 @@ public:
         return 0;
     }
     
+    // 删除html标签，由于有些页面包含多个<html> <head></head> <body> </body> </html> ，需要除去非收尾的html标签内容
+    int delete_html_lable(string & content)
+    {
+        int findPostIndex = content.find("<body");
+        while(1)
+        {
+            int scriptBeginIndex =  content.find("<html",findPostIndex);
+            if(scriptBeginIndex == string::npos)
+            {
+                break;
+            }
+            int scriptEndIndex = content.find("</html>",scriptBeginIndex);
+            if(scriptEndIndex == string::npos)
+            {
+                break;
+            }
+            findPostIndex= scriptBeginIndex;
+            if(content[scriptEndIndex+7] == '\n')
+                content.erase(content.begin()+scriptBeginIndex,content.begin()+scriptEndIndex+8);
+            else
+            {
+                content.erase(content.begin()+scriptBeginIndex,content.begin()+scriptEndIndex+7);
+            }
+        }
+        return 1;
+    }
     
     // 删除script标签
     int delete_script_lable(string &content){
@@ -74,12 +100,21 @@ public:
             {
                 break;
             }
-            
+            int bigscriptEndIndex = content.find("</SCRIPT>",scriptBeginIndex);
             int scriptEndIndex = content.find("</script>",scriptBeginIndex);
-            if(scriptEndIndex == string::npos)
+            if(scriptEndIndex == string::npos && bigscriptEndIndex == string::npos)
             {
                 break;
             }
+            if(scriptEndIndex != string::npos && bigscriptEndIndex != string::npos)
+            {
+                scriptEndIndex = min(scriptEndIndex,bigscriptEndIndex);
+            }
+            else if(scriptEndIndex == string::npos)
+            {
+                scriptEndIndex = bigscriptEndIndex;
+            }
+        
             
             findPostIndex= scriptBeginIndex;
             if(content[scriptEndIndex+9] == '\n')
@@ -99,12 +134,29 @@ public:
                 break;
             }
             
+            int bigscriptEndIndex = content.find("</SCRIPT>",scriptBeginIndex);
+            int scriptEndIndex = content.find("</script>",scriptBeginIndex);
+            if(scriptEndIndex == string::npos && bigscriptEndIndex == string::npos)
+            {
+                break;
+            }
+            if(scriptEndIndex != string::npos && bigscriptEndIndex != string::npos)
+            {
+                scriptEndIndex = min(scriptEndIndex,bigscriptEndIndex);
+            }
+            else if(scriptEndIndex == string::npos)
+            {
+                scriptEndIndex = bigscriptEndIndex;
+            }
+            
+            
+            /*
             int scriptEndIndex = content.find("</SCRIPT>",scriptBeginIndex);
             if(scriptEndIndex == string::npos)
             {
                 break;
             }
-            
+            */
             findPostIndex= scriptBeginIndex;
             if(content[scriptEndIndex+9] == '\n')
                 content.erase(content.begin()+scriptBeginIndex,content.begin()+scriptEndIndex+10);
@@ -859,8 +911,8 @@ public:
     }
 
     
-    // 删除strong标签,内容保留（strong只是改变文本格式）
-    int delete_strong_lable_old(string &content){
+    // 删除b标签,内容保留（b只是改变文本格式）
+    int delete_b_lable(string &content){
         int findPostIndex = content.find("<body");
         if(findPostIndex == string::npos)
         {
@@ -868,21 +920,22 @@ public:
         }
         while(1)
         {
-            int scriptBeginIndex =  content.find("<strong",findPostIndex);
+            int scriptBeginIndex =  content.find("<b>",findPostIndex);
             if(scriptBeginIndex == string::npos)
             {
                 break;
             }
             
-            int tmp_end = content.find(">",scriptBeginIndex + 3);
-            content.erase(scriptBeginIndex,tmp_end - scriptBeginIndex +1);
+            //int tmp_end = content.find(">",scriptBeginIndex + 3);
+            content.erase(scriptBeginIndex,3);
             
-            int scriptEndIndex = content.find("</strong>",scriptBeginIndex);
+            int scriptEndIndex = content.find("</b>",scriptBeginIndex);
             if(scriptEndIndex == string::npos)
             {
                 break;
             }
-            content.erase(scriptEndIndex,9);
+            content.erase(scriptEndIndex,4);
+            findPostIndex = scriptEndIndex;
             /*
              string inner_content = content.substr(scriptBeginIndex,scriptEndIndex-scriptBeginIndex +5);
              if(inner_content.find("href") == string::npos)
@@ -1858,11 +1911,13 @@ public:
         cout<<"content:"<<content.substr(0,100)<<endl;
         cout<<"去除html的响应报文内容 ok"<<endl;
         
+        delete_html_lable(content);
         
         //去除 <head ...> .........</head>内容
         delete_head_lable(content);
-        cout<<"<去除 <head ...> .........</head>内容 完成"<<endl;
         
+        cout<<"<去除 <head ...> .........</head>内容 完成"<<endl;
+        //cout<< content<<endl;
         int bodyBeginIndex = content.find("<body");
         if(bodyBeginIndex == string::npos)
         {
@@ -1888,7 +1943,7 @@ public:
         cout<<"<去除 <!-- .... -->内容 完成"<<endl;
         
         //去除ul表情
-        delete_ul_lable(content);
+        //delete_ul_lable(content);
         cout<<"<去除 <ul ...> .........</ul>内容 完成"<<endl;
         
         //去除 <a ...> .........</a>内容
@@ -1916,6 +1971,8 @@ public:
         //去除img标签
         delete_img_lable(content);
         cout<<"<去除 <img  ....  />内容 完成"<<endl;
+        
+        delete_b_lable(content);
         
         //修复标签
         repair_html_lable(content);
