@@ -48,6 +48,11 @@ public:
         int nextHeadEndIndex = content.find("</head>",headEndIndex+5);
         if(nextHeadEndIndex == string::npos)
         {
+            cout<<"The page has no header end."<<endl;
+            return -1;
+        }
+        if(nextHeadEndIndex == string::npos)
+        {
             content.erase(content.begin() + headBeginIndex,content.begin() + headEndIndex+7);
         }
         else
@@ -59,17 +64,17 @@ public:
     }
     
     // 删除html标签，由于有些页面包含多个<html> <head></head> <body> </body> </html> ，需要除去非收尾的html标签内容
-    int delete_html_lable(string & content)
+    int delete_another_html_head_lable(string & content)
     {
         int findPostIndex = content.find("<body");
         while(1)
         {
-            int scriptBeginIndex =  content.find("<html",findPostIndex);
+            int scriptBeginIndex =  content.find("<head ",findPostIndex);
             if(scriptBeginIndex == string::npos)
             {
                 break;
             }
-            int scriptEndIndex = content.find("</html>",scriptBeginIndex);
+            int scriptEndIndex = content.find("</head>",scriptBeginIndex);
             if(scriptEndIndex == string::npos)
             {
                 break;
@@ -87,7 +92,7 @@ public:
     
     // 删除script标签
     int delete_script_lable(string &content){
-        int findPostIndex = content.find("<body");
+        int findPostIndex = 0;
         if(findPostIndex == string::npos)
         {
             return 0;
@@ -125,7 +130,7 @@ public:
             }
         }
         
-        findPostIndex = content.find("<body");
+        findPostIndex = 0;
         while(1)
         {
             int scriptBeginIndex =  content.find("<SCRIPT",findPostIndex);
@@ -170,7 +175,7 @@ public:
     
     // 删除style标签
     int delete_style_lable(string &content){
-        int findPostIndex = content.find("<body");
+        int findPostIndex = 0;
         if(findPostIndex == string::npos)
         {
             return 0;
@@ -196,12 +201,34 @@ public:
                 content.erase(content.begin()+scriptBeginIndex,content.begin()+scriptEndIndex+8);
             }
         }
+        findPostIndex = 0;
+        while(1)
+        {
+            int scriptBeginIndex =  content.find("<STYLE",findPostIndex);
+            if(scriptBeginIndex == string::npos)
+            {
+                break;
+            }
+            int scriptEndIndex = content.find("</STYLE>",scriptBeginIndex);
+            if(scriptEndIndex == string::npos)
+            {
+                break;
+            }
+            findPostIndex= scriptBeginIndex;
+            if(content[scriptEndIndex+8] == '\n')
+                content.erase(content.begin()+scriptBeginIndex,content.begin()+scriptEndIndex+9);
+            else
+            {
+                content.erase(content.begin()+scriptBeginIndex,content.begin()+scriptEndIndex+8);
+            }
+        }
+        
         return 0;
     }
     
     // 删除<!---   -->标签
     int delete_explain_lable(string &content){
-        int findPostIndex = content.find("<body");
+        int findPostIndex = 0;
         if(findPostIndex == string::npos)
         {
             return 0;
@@ -214,7 +241,6 @@ public:
             {
                 break;
             }
-            
             int scriptEndIndex = content.find("->",scriptBeginIndex);
             if(scriptEndIndex == string::npos)
             {
@@ -236,7 +262,7 @@ public:
     
     // 删除 ul 标签
     int delete_ul_lable(string &content){
-        int findPostIndex = content.find("<body");
+        int findPostIndex = 0;
         if(findPostIndex == string::npos)
         {
             return 0;
@@ -326,7 +352,7 @@ public:
     
     // 删除li标签
     int delete_li_lable(string &content){
-        int findPostIndex = content.find("<body");
+        int findPostIndex = 0;
         if(findPostIndex == string::npos)
         {
             return 0;
@@ -362,7 +388,7 @@ public:
     
     // 删除 a 标签  修改a标签嵌套的bug
     int delete_a_lable(string &content){
-        int findPostIndex = content.find("<body");
+        int findPostIndex = 0;
         if(findPostIndex == string::npos)
         {
             return 0;
@@ -481,7 +507,7 @@ public:
     
     // 删除a标签
     int delete_a_lable_old(string &content){
-        int findPostIndex = content.find("<body");
+        int findPostIndex = 0;
         if(findPostIndex == string::npos)
         {
             return 0;
@@ -615,7 +641,7 @@ public:
     
     // 删除noScript标签
     int delete_noScript_lable(string &content){
-        int findPostIndex = content.find("<body");
+        int findPostIndex = 0;
         if(findPostIndex == string::npos)
         {
             return 0;
@@ -646,7 +672,7 @@ public:
     
     // 删除iframe标签
     int delete_iframe_lable(string &content){
-        int findPostIndex = content.find("<body");
+        int findPostIndex = 0;
         if(findPostIndex == string::npos)
         {
             return 0;
@@ -676,7 +702,7 @@ public:
     
     // 删除table标签
     int delete_table_lable(string &content){
-        int findPostIndex = content.find("<body");
+        int findPostIndex = 0;
         if(findPostIndex == string::npos)
         {
             return 0;
@@ -758,7 +784,7 @@ public:
     
     // 删除font标签,内容保留（font只是改变文本格式）
     int delete_font_lable(string &content){
-        int findPostIndex = content.find("<body");
+        int findPostIndex = 0;
         if(findPostIndex == string::npos)
         {
             return 0;
@@ -801,7 +827,7 @@ public:
     
     // 删除span标签,内容保留（span只是改变文本格式）
     int delete_span_lable(string &content){
-        int findPostIndex = content.find("<body");
+        int findPostIndex = 0;
         if(findPostIndex == string::npos)
         {
             return 0;
@@ -857,7 +883,7 @@ public:
     
     // 删除strong标签,内容保留（span只是改变文本格式）   增加删除 <strong> ....  <STRONG>  之类的大小写标签。。。。。
     int delete_strong_lable(string &content){
-        int findPostIndex = content.find("<body");
+        int findPostIndex =0;
         if(findPostIndex == string::npos)
         {
             return 0;
@@ -913,7 +939,7 @@ public:
     
     // 删除b标签,内容保留（b只是改变文本格式）
     int delete_b_lable(string &content){
-        int findPostIndex = content.find("<body");
+        int findPostIndex = 0;
         if(findPostIndex == string::npos)
         {
             return 0;
@@ -957,7 +983,7 @@ public:
     
     // 删除img标签
     int delete_img_lable(string &content){
-        int findPostIndex = content.find("<body");
+        int findPostIndex = 0;
         if(findPostIndex == string::npos)
         {
             return 0;
@@ -977,7 +1003,7 @@ public:
             findPostIndex = imgBeginIndex;
             content.erase(content.begin() + imgBeginIndex,content.begin()+imgEndIndex+1);
         }
-        findPostIndex = content.find("<body");
+        findPostIndex = 0;
         while(1)
         {
             int imgBeginIndex = content.find("<IMG",findPostIndex);
@@ -1086,7 +1112,7 @@ public:
     
     // 删除meta标签
     int delete_meta_lable(string &content){
-        int findPostIndex = content.find("<body");
+        int findPostIndex = 0;
         if(findPostIndex == string::npos)
         {
             return 0;
@@ -1181,7 +1207,7 @@ public:
     
     //删除<br /> 标签
     int delete_br_lable(string &content){
-        int findPostIndex = content.find("<body");
+        int findPostIndex = 0;
         if(findPostIndex == string::npos)
             return 0;
         while(1){
@@ -1200,7 +1226,7 @@ public:
     
     //删除<wbr /> 标签
     int delete_wbr_lable(string &content){
-        int findPostIndex = content.find("<body");
+        int findPostIndex =0;
         if(findPostIndex == string::npos)
             return 0;
         while(1){
@@ -1219,7 +1245,7 @@ public:
     
     //删除<hr /> 标签
     int delete_hr_lable(string &content){
-        int findPostIndex = content.find("<body");
+        int findPostIndex = 0;
         if(findPostIndex == string::npos)
             return 0;
         while(1){
@@ -1238,7 +1264,7 @@ public:
     
     // 删除input标签
     int delete_input_lable(string &content){
-        int findPostIndex = content.find("<body");
+        int findPostIndex = 0;
         if(findPostIndex == string::npos)
         {
             return 0;
@@ -1263,7 +1289,7 @@ public:
     
     // 删除link标签
     int delete_link_lable(string &content){
-        int findPostIndex = content.find("<body");
+        int findPostIndex = 0;
         if(findPostIndex == string::npos)
         {
             return 0;
@@ -1288,7 +1314,7 @@ public:
     
     // 删除tab键
     int delete_tab_key(string &content){
-        int findPostIndex = content.find("<body");
+        int findPostIndex = 0;
         if(findPostIndex == string::npos)
         {
             return 0;
@@ -1613,7 +1639,7 @@ public:
     
     int delete_empty_label(string &content)
     {
-        int findPostIndex = content.find("<body");
+        int findPostIndex = 0;
         if(findPostIndex == string::npos)
         {
             return 0;
@@ -1901,7 +1927,9 @@ public:
     int parse_content_avoid_over_delete( string &content)
     {
         cout<<"开始处理文本......"<<endl;
-        
+        //去除 <!-- .... -->注释内容
+        delete_explain_lable(content);
+        cout<<"<去除 <!-- .... -->内容 完成"<<endl;
         //去除html的响应报文内容
         int  htmlIndex = content.find("<html");
         cout<<"contentsize: "<<content.size()<<endl;
@@ -1911,7 +1939,7 @@ public:
         cout<<"content:"<<content.substr(0,100)<<endl;
         cout<<"去除html的响应报文内容 ok"<<endl;
         
-        delete_html_lable(content);
+        delete_another_html_head_lable(content);
         
         //去除 <head ...> .........</head>内容
         delete_head_lable(content);
@@ -1949,11 +1977,11 @@ public:
         //去除 <a ...> .........</a>内容
         //delete_a_lable(content);
         //delete_a_lable(content);
-        cout<<"<去除 <a ...> .........</a>内容 完成"<<endl;
+        //cout<<"<去除 <a ...> .........</a>内容 完成"<<endl;
         
         //去除 <span ...> .........</span>内容
         delete_span_lable(content);
-        //cout<<"<去除 <span ...> .........</span>内容 完成"<<endl;
+        cout<<"<去除 <span ...> .........</span>内容 完成"<<endl;
         //  删除strong标签项，不删内容
         delete_strong_lable(content);
         
