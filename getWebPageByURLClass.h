@@ -166,6 +166,7 @@ public:
         char buf[1000000];
         int totallen = 0;
         int loop = 2;
+        bool requestMsg = true;
         while(1)
         {
             nw = read(sockfd,buf,1000000);
@@ -181,6 +182,11 @@ public:
             buf[nw] = '\0';
             cout<<"------------------------------------------------------------------------\n";
             content += buf;
+            if(requestMsg)
+            {
+                content += "split_request_and_content\n";
+                requestMsg =false;
+            }
             totallen += nw;
             cout<<"totalLen:"<<totallen<<endl;
             //sleep(1);
@@ -251,13 +257,13 @@ public:
         {
             cout<<"codingType is NULL or unknown\n";
             utf_8_content = content;
-            int titlestart = utf_8_content.find("<title>");
-            int titleend = utf_8_content.find("</title>");
-            string title =  utf_8_content.substr(titlestart+7,titleend- titlestart-7);
-            web_page_title = title;
-            cout<<"totallen: "<<totallen<<endl;
+            //int titlestart = utf_8_content.find("<title>");
+            //int titleend = utf_8_content.find("</title>");
+            //string title =  utf_8_content.substr(titlestart+7,titleend- titlestart-7);
+            //web_page_title = title;
+            //cout<<"totallen: "<<totallen<<endl;
             //cout<< "title : "<<title<<endl;
-            cout<<"codingType:  "<<codingType<<endl;
+            //cout<<"codingType:  "<<codingType<<endl;
             
             //int  htmlIndex_t = utf_8_content.find("<html");
             //utf_8_content.erase(utf_8_content.begin(),utf_8_content.begin() + htmlIndex_t );
@@ -277,6 +283,20 @@ public:
             return "";
         }
         //cout<<"--------------------pp-------\n"<<utf_8_content.substr(1,1000);
+        
+        int findPostIndex = 0;
+        int tmpIndex;
+        while(1)
+        {
+            tmpIndex = utf_8_content.find("TITLE");
+            if(tmpIndex == string::npos)
+            {
+                break;
+            }
+            utf_8_content.replace(tmpIndex, 5, "title");
+            findPostIndex = tmpIndex +3;
+        }
+        
         int titlestart = utf_8_content.find("<title>");
         int titleend = utf_8_content.find("</title>");
         cout<< "titlestart: "<< titlestart<<endl;
@@ -288,9 +308,15 @@ public:
         web_page_title = title;
         
         //cout<<"++++++++++++++++++++++++++++++++\n"<<utf_8_content<<endl;
+        /*
         int  htmlIndex_t = utf_8_content.find("html");
         utf_8_content.erase(utf_8_content.begin(),utf_8_content.begin() + htmlIndex_t );
         utf_8_content = "<" + utf_8_content;
+        */
+        int htmlIndex = utf_8_content.find("split_request_and_content");
+        //cout<<"contentsize: "<<content.size()<<endl;
+        //cout<<"htmlIndex:"<< htmlIndex<<endl;
+        utf_8_content.erase(utf_8_content.begin(),utf_8_content.begin() + htmlIndex + 26);
         
         fstream  ifile;
         ifile.open("/Users/pc/get_html_page.html",ios_base::out|ios::out );

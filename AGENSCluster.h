@@ -469,7 +469,6 @@ private:
         }
         return ret;
     }
-    
 };
 
 #endif /* defined(__spiter__AGENSCluster__) */

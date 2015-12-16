@@ -46,11 +46,13 @@ public:
             return -1;
         }
         int nextHeadEndIndex = content.find("</head>",headEndIndex+5);
+        /*
         if(nextHeadEndIndex == string::npos)
         {
             cout<<"The page has no header end."<<endl;
             return -1;
         }
+         */
         if(nextHeadEndIndex == string::npos)
         {
             content.erase(content.begin() + headBeginIndex,content.begin() + headEndIndex+7);
@@ -996,13 +998,36 @@ public:
                 break;
             }
             int imgEndIndex = content.find(">",imgBeginIndex+3);
+            
+            int nextFlag = false; //下一个<是否出现   避免img标签中有">"符号
+            //while(imgEndIndex != string::npos)
+            {
+                int i= imgEndIndex+1;
+                for(;i<content.size();i++)
+                {
+                    if( content[i] == '<')
+                    {
+                        break;
+                    }
+                    if( content[i] == '>')
+                    {
+                        imgEndIndex = i;
+                    }
+                }
+            }
+            if(imgEndIndex == string::npos)
+                return -1;
+            /*
+            int imgEndIndex = content.find(">",imgBeginIndex+3);
             if(imgEndIndex == string::npos)
             {
                 return -1;
             }
+             */
             findPostIndex = imgBeginIndex;
             content.erase(content.begin() + imgBeginIndex,content.begin()+imgEndIndex+1);
         }
+        /*
         findPostIndex = 0;
         while(1)
         {
@@ -1012,14 +1037,32 @@ public:
                 break;
             }
             int imgEndIndex = content.find(">",imgBeginIndex+3);
+            while(imgEndIndex != string::npos)
+            {
+                int i= imgEndIndex-1;
+                for(;content[i] == ' '&& i>=0;i--)
+                    ;
+                if(content[i] == '/')
+                    break;
+                else
+                {
+                    imgEndIndex =content.find(">",imgEndIndex+1);
+                }
+                
+            }
+            if(imgEndIndex == string::npos)
+                return -1;
+         
+            int imgEndIndex = content.find(">",imgBeginIndex+3);
             if(imgEndIndex == string::npos)
             {
                 return -1;
             }
+         
             findPostIndex = imgBeginIndex;
             content.erase(content.begin() + imgBeginIndex,content.begin()+imgEndIndex+1);
         }
-        
+        */
         return 0;
     }
     
@@ -1801,7 +1844,7 @@ public:
     //去除 <br ... />内容
     //去除 <div ...> .........</div>内容
     //去除iframe标签
-    
+
     int parse_content( string &content)
     {
         cout<<"开始处理文本......"<<endl;
@@ -1923,20 +1966,111 @@ public:
     }
     
     
+    int change_big_to_small(string & content)
+    {
+        int findPostIndex = 0;
+        int tmpIndex;
+        while(1)
+        {
+            tmpIndex = content.find("HEAD");
+            if(tmpIndex == string::npos)
+            {
+                break;
+            }
+            content.replace(tmpIndex, 4, "head");
+            findPostIndex = tmpIndex +3;
+        }
+        findPostIndex = 0;
+        while(1)
+        {
+            tmpIndex = content.find("HTML");
+            if(tmpIndex == string::npos)
+            {
+                break;
+            }
+            content.replace(tmpIndex, 4, "html");
+            findPostIndex = tmpIndex +3;
+        }
+        findPostIndex = 0;
+        while(1)
+        {
+            tmpIndex = content.find("BODY");
+            if(tmpIndex == string::npos)
+            {
+                break;
+            }
+            content.replace(tmpIndex, 4, "body");
+            findPostIndex = tmpIndex +3;
+        }
+        
+        findPostIndex = 0;
+        while(1)
+        {
+            tmpIndex = content.find("SCRIPT");
+            if(tmpIndex == string::npos)
+            {
+                break;
+            }
+            content.replace(tmpIndex, 6, "script");
+            findPostIndex = tmpIndex +3;
+        }
+        
+        findPostIndex = 0;
+        while(1)
+        {
+            tmpIndex = content.find("NOSCRIPT");
+            if(tmpIndex == string::npos)
+            {
+                break;
+            }
+            content.replace(tmpIndex, 8, "noscript");
+            findPostIndex = tmpIndex +3;
+        }
+        
+        findPostIndex = 0;
+        while(1)
+        {
+            tmpIndex = content.find("SPAN");
+            if(tmpIndex == string::npos)
+            {
+                break;
+            }
+            content.replace(tmpIndex, 4, "span");
+            findPostIndex = tmpIndex +3;
+        }
+        
+        findPostIndex = 0;
+        while(1)
+        {
+            tmpIndex = content.find("<IMG");
+            if(tmpIndex == string::npos)
+            {
+                break;
+            }
+            content.replace(tmpIndex, 4, "<img");
+            findPostIndex = tmpIndex +3;
+        }
+        return 1;
+    }
+    
     //精简预处理，防止过度处理而影响结果
     int parse_content_avoid_over_delete( string &content)
     {
         cout<<"开始处理文本......"<<endl;
+        //将特点标签转化为小写
+        change_big_to_small(content);
+        
         //去除 <!-- .... -->注释内容
         delete_explain_lable(content);
         cout<<"<去除 <!-- .... -->内容 完成"<<endl;
         //去除html的响应报文内容
-        int  htmlIndex = content.find("<html");
-        cout<<"contentsize: "<<content.size()<<endl;
-        cout<<"htmlIndex:"<< htmlIndex<<endl;
-        content.erase(content.begin(),content.begin() + htmlIndex );
-        cout<<"contentsize: "<<content.size()<<endl;
-        cout<<"content:"<<content.substr(0,100)<<endl;
+        //int  htmlIndex = content.find("<html");
+        //int htmlIndex = content.find("split_request_and_content");
+        //cout<<"contentsize: "<<content.size()<<endl;
+        //cout<<"htmlIndex:"<< htmlIndex<<endl;
+        //content.erase(content.begin(),content.begin() + htmlIndex + 26);
+        //cout<<"contentsize: "<<content.size()<<endl;
+        //cout<<"content:"<<content.substr(0,100)<<endl;
         cout<<"去除html的响应报文内容 ok"<<endl;
         
         delete_another_html_head_lable(content);
@@ -1967,7 +2101,7 @@ public:
         
         
         //去除 <!-- .... -->注释内容
-        delete_explain_lable(content);
+        //delete_explain_lable(content);
         cout<<"<去除 <!-- .... -->内容 完成"<<endl;
         
         //去除ul表情
@@ -2004,6 +2138,9 @@ public:
         
         //修复标签
         repair_html_lable(content);
+        
+        //delete_li_lable(content);
+        cout<<"<去除 <li ...> .........</li>内容 完成"<<endl;
         
         return 1;
         
