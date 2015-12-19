@@ -113,6 +113,12 @@ public:
         return 0;
     }
     
+    static void signal_alm(int sig)
+    {
+        cout<<"get_html_content_by_url 超时"<<endl;
+        return ;
+    }
+    
     string get_html_content_by_url(string url)
     {
         //分解URL，获取协议，域名和资源路径
@@ -140,6 +146,14 @@ public:
         addr.sin_family = AF_INET;
         addr.sin_port = htons(80);
         sockfd = socket(AF_INET,SOCK_STREAM,0);
+        
+        struct timeval timeout = {3,0};
+        //设置发送超时
+        setsockopt(sockfd,SOL_SOCKET,SO_SNDTIMEO,(char*)&timeout, sizeof(struct timeval));
+        //设置接收超时
+        setsockopt(sockfd,SOL_SOCKET,SO_RCVTIMEO,(char*)&timeout, sizeof(struct timeval));
+
+        
         if(connect(sockfd,(struct sockaddr*)&addr,sizeof(struct sockaddr)) == 0)
         {
             cout<<"Connect OK..."<<endl;
@@ -167,11 +181,11 @@ public:
         int totallen = 0;
         int loop = 2;
         bool requestMsg = true;
+        signal(SIGALRM, signal_alm);
+        alarm(10);
         while(1)
         {
             nw = read(sockfd,buf,1000000);
-            //if((nw <= 0) && (loop--==0))
-            //  break;
             if(nw == -1)
             {
                 cout<<"socket read error:"<<strerror(errno)<<endl;
@@ -180,6 +194,7 @@ public:
             if(nw == 0)
                 break;
             buf[nw] = '\0';
+            //cout<<buf<<endl;
             cout<<"------------------------------------------------------------------------\n";
             content += buf;
             if(requestMsg)
@@ -191,11 +206,11 @@ public:
             cout<<"totalLen:"<<totallen<<endl;
             //sleep(1);
         }
+        alarm(0);
         close(sockfd);
         //获取报文反馈消息是否成功  成功为200 字段 //如果不是200 则请求错误
         if(content.size() <= 0)
         {
-            
             return "";
         }
         string requestType = content.substr(9,3);
@@ -397,7 +412,8 @@ public:
             if(get_domain_from_url(url) != get_domain_from_url(tmpUrl))
             {
                 //获得站外链接
-                normalUrl = "";
+                //normalUrl = "";
+                normalUrl = tmpUrl;
                 return 1;
             }
             else

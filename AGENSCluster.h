@@ -146,17 +146,20 @@ public:
         }
     }
     
-    //根据簇中心向量的标签文本平均长度来确定文本簇，目前长度最长的来定义为特征簇（待优化）
+    //根据簇中心向量的标签文本平均长度来确定文本簇，目前长度+标点符号数的大小来定义为特征簇（待优化）
     int get_page_text_cluster_k()
     {
         int tmp_k = 0;
-        int tmp_len = kCenter[0][1];
+        int tmp_len = kCenter[0][1] + kCenter[0][4];
         
         for(int i=1;i<K; i++)
         {
-            if(kCenter[i][1] > tmp_len)
+            if(kCenter[i][1] < kCenter[i][4])
+                continue;
+            
+            if(kCenter[i][1] + kCenter[i][4] > tmp_len)
             {
-                tmp_len = kCenter[i][1];
+                tmp_len = kCenter[i][1] + kCenter[i][4] ;
                 tmp_k = i;
             }
         }

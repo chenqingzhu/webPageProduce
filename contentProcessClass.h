@@ -808,24 +808,63 @@ public:
                 break;
             }
             content.erase(scriptEndIndex,7);
-            /*
-             string inner_content = content.substr(scriptBeginIndex,scriptEndIndex-scriptBeginIndex +5);
-             if(inner_content.find("href") == string::npos)
-             {
-             findPostIndex= scriptBeginIndex;
-             if(content[scriptEndIndex+7] == '\n')
-             content.erase(content.begin()+scriptBeginIndex,content.begin()+scriptEndIndex+8);
-             else
-             {
-             content.erase(content.begin()+scriptBeginIndex,content.begin()+scriptEndIndex+7);
-             }
-             }
-             else
-             findPostIndex= scriptEndIndex +5;
-             */
         }
         return 0;
     }
+    
+    
+    // 删除em标签,内容保留（em只是将文本改为斜体）
+    int delete_em_lable(string &content){
+        int findPostIndex = 0;
+        if(findPostIndex == string::npos)
+        {
+            return 0;
+        }
+        while(1)
+        {
+            int scriptBeginIndex =  content.find("<em>",findPostIndex);
+            if(scriptBeginIndex == string::npos)
+            {
+                break;
+            }
+            content.erase(scriptBeginIndex,4);
+            
+            int scriptEndIndex = content.find("</em>",scriptBeginIndex);
+            if(scriptEndIndex == string::npos)
+            {
+                break;
+            }
+            content.erase(scriptEndIndex,5);
+        }
+        return 0;
+    }
+    
+    // 删除td标签,内容保留（td只是将文本改为斜体）
+    int delete_td_lable(string &content){
+        int findPostIndex = 0;
+        if(findPostIndex == string::npos)
+        {
+            return 0;
+        }
+        while(1)
+        {
+            int scriptBeginIndex =  content.find("<td>",findPostIndex);
+            if(scriptBeginIndex == string::npos)
+            {
+                break;
+            }
+            content.erase(scriptBeginIndex,4);
+            
+            int scriptEndIndex = content.find("</td>",scriptBeginIndex);
+            if(scriptEndIndex == string::npos)
+            {
+                break;
+            }
+            content.erase(scriptEndIndex,5);
+        }
+        return 0;
+    }
+    
     
     // 删除span标签,内容保留（span只是改变文本格式）
     int delete_span_lable(string &content){
@@ -1000,7 +1039,7 @@ public:
             int imgEndIndex = content.find(">",imgBeginIndex+3);
             
             int nextFlag = false; //下一个<是否出现   避免img标签中有">"符号
-            //while(imgEndIndex != string::npos)
+            if(imgEndIndex != string::npos)
             {
                 int i= imgEndIndex+1;
                 for(;i<content.size();i++)
@@ -2038,18 +2077,41 @@ public:
             content.replace(tmpIndex, 4, "span");
             findPostIndex = tmpIndex +3;
         }
-        
         findPostIndex = 0;
         while(1)
         {
-            tmpIndex = content.find("<IMG");
+            tmpIndex = content.find("SPAN");
             if(tmpIndex == string::npos)
             {
                 break;
             }
-            content.replace(tmpIndex, 4, "<img");
+            content.replace(tmpIndex, 4, "span");
             findPostIndex = tmpIndex +3;
         }
+        
+        findPostIndex = 0;
+        while(1)
+        {
+            tmpIndex = content.find("<EM>");
+            if(tmpIndex == string::npos)
+            {
+                break;
+            }
+            content.replace(tmpIndex, 4, "<em>");
+            findPostIndex = tmpIndex +3;
+        }
+        findPostIndex = 0;
+        while(1)
+        {
+            tmpIndex = content.find("</EM>");
+            if(tmpIndex == string::npos)
+            {
+                break;
+            }
+            content.replace(tmpIndex, 5, "</em>");
+            findPostIndex = tmpIndex +3;
+        }
+        
         return 1;
     }
     
@@ -2081,12 +2143,13 @@ public:
         cout<<"<去除 <head ...> .........</head>内容 完成"<<endl;
         //cout<< content<<endl;
         int bodyBeginIndex = content.find("<body");
+        /*
         if(bodyBeginIndex == string::npos)
         {
             cout<<"The page has no body"<<endl;
             return -1;
         }
-        
+        */
         //去除 <script ...> .........</script>内容
         delete_script_lable(content);
         cout<<"<去除 <script ...> .........</script>内容 完成"<<endl;
@@ -2130,6 +2193,8 @@ public:
         
         delete_font_lable(content);
         
+        delete_em_lable(content);
+        //delete_td_lable(content);
         //去除img标签
         delete_img_lable(content);
         cout<<"<去除 <img  ....  />内容 完成"<<endl;
