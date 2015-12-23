@@ -76,7 +76,4 @@ struct lableFeature{
     }
 };
 
-
-
-
 #endif

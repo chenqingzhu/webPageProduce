@@ -434,7 +434,7 @@ private:
         Feature max_feature = initFeatureVector[0];
         Feature min_feature = initFeatureVector[0];
         
-        double weights[] = {1.0,50.0,10.0,10.0,20.0,30.0};
+        double weights[] = {1.0,50.0,10.0,10.0,20.0,20.0};
         Feature feature_weights(weights,weights +6);
         for(int i=1;i< initFeatureVector.size(); i++)
         {

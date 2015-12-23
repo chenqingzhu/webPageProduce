@@ -158,8 +158,6 @@ public:
         {
             cout<<"Connect OK..."<<endl;
         }
-        
-        
         string request("");
         //发送HTTP请求头部
         request += "GET "+path +" HTTP/1.0\r\n";        //使用GET方式请求该域名的path路径，采用HTTP1.0版本
@@ -182,7 +180,7 @@ public:
         int loop = 2;
         bool requestMsg = true;
         signal(SIGALRM, signal_alm);
-        alarm(10);
+       // alarm(15);
         while(1)
         {
             nw = read(sockfd,buf,1000000);
@@ -206,7 +204,7 @@ public:
             cout<<"totalLen:"<<totallen<<endl;
             //sleep(1);
         }
-        alarm(0);
+       // alarm(0);
         close(sockfd);
         //获取报文反馈消息是否成功  成功为200 字段 //如果不是200 则请求错误
         if(content.size() <= 0)
@@ -373,8 +371,11 @@ public:
         ifstream in(filename);
         string content("");
         string lines;
-        
-        int i;
+        if(!in)
+        {
+            cout<<"open file error:"<<strerror(errno)<<endl;
+            return content;
+        }
         while(getline(in, lines))
         {
             content += lines + '\n';
