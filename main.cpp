@@ -17,6 +17,8 @@
 #include <fcntl.h>
 #include <stack>
 #include <map>
+#include <libxml/parser.h>
+#include <libxml/tree.h>
 #include <vector>
 #include <cctype>
 #include <iconv.h> //用于编码转换
@@ -337,6 +339,27 @@ vector<string> get_lable_attribute_vector(string content)
     }
 
     return ret;
+}
+//获取左标签的class属性
+string  get_left_lable_class_msg(string leftPartContent)
+{
+    int pos = leftPartContent.find("class=");
+    if(pos == string::npos)
+        return "NULL";
+    int leftyinghao = leftPartContent.find("\"",pos+1);
+    int rightyinghao = leftPartContent.find("\"",leftyinghao+1);
+    return leftPartContent.substr(leftyinghao+1,rightyinghao-leftyinghao-1);
+}
+
+//获取左标签的id属性
+string  get_left_lable_id_msg(string leftPartContent)
+{
+    int pos = leftPartContent.find("id=");
+    if(pos == string::npos)
+        return "NULL";
+    int leftyinghao = leftPartContent.find("\"",pos+1);
+    int rightyinghao = leftPartContent.find("\"",leftyinghao+1);
+    return leftPartContent.substr(leftyinghao+1,rightyinghao-leftyinghao-1);
 }
 
 //获取标签特征
@@ -743,9 +766,7 @@ vector<struct lableFeature> get_content_lable_feature_1124(string content){
                         lableEndIndex = lableBeginIndex + tm_content.size()-1;
                         find_index_for_init_content = lableEndIndex;
                     }
-                    
                     //cout<<"tm_content: "<<tm_content<<endl;
-                    
                     //int lableBeginIndex = init_content.find(lableContent);
                     //int lableEndIndex = lableBeginIndex + lableContent.size() - 1;
                     int lableLeftPartLength = lableLeftPartContent.size();
@@ -754,11 +775,50 @@ vector<struct lableFeature> get_content_lable_feature_1124(string content){
                     vector<string> lableAttributeVector = get_lable_attribute_vector(lableLeftPartContent);
                     int lableLevelNumber = lableStack.size();
                     //网站信息定义为a标签，这样做：1、避免在聚类时候影响文本簇的选择，2、如果正文中有“All Rights Reserved”，也不会影响文本提取；
-                    if(lableContent.find("All Rights Reserved") != string::npos || lableContent.find("【免责声明】") != string::npos || (lableContent.find("sohu.com")!= string::npos &&  lableContent.find("http://")!= string::npos ) )
+                    if(lableContent.find("All Rights Reserved") != string::npos || lableContent.find("【免责声明】") != string::npos || (lableContent.find("sohu.com")!= string::npos &&  lableContent.find("http://")!= string::npos ) || lableContent.find("all rights reserved") != string::npos ||(lableContent.find("网站运营：") != string::npos) ||((lableContent.find("法律事务：") != string::npos) && (lableContent.find("电子邮件：") != string::npos) ))
                         lableName = "a";
                     
                     struct lableFeature lf(lableName,lableContent,lableLeftPartContent,lableBeginIndex,lableEndIndex,
                                            lableId++,lableContentLength,lableLeftPartLength,lableRightPartLength,lablePunctNumber,lableAttributeVector,lableLevelNumber);
+
+                    content.erase(content.begin() + topMsg.endIndex+1,content.begin() + msg.beginIndex);
+                    msg.beginIndex -= content_between_topLable_and_leftLable.size();
+                    msg.endIndex -= content_between_topLable_and_leftLable.size();
+                    lableStack.top().leafLableFlag = false;
+                    
+                    topMsg = lableStack.top();
+                    lableStack.pop();
+                    lableMsg fatherMsg,fatherMsg2;
+                    string fatherLableLeftPartContent;
+                    string fatherClassMsg,fatherIdMsg;
+                    string fatherLableName;
+                    if (lableStack.empty()) {
+                        fatherLableName ="NULL";
+                        fatherClassMsg = "NULL";
+                        fatherIdMsg = "NULL";
+                    }
+                    else
+                    {
+                        fatherMsg = lableStack.top();
+                        fatherLableLeftPartContent = content.substr(fatherMsg.beginIndex,fatherMsg.endIndex - fatherMsg.beginIndex +1);
+                        fatherClassMsg = get_left_lable_class_msg(fatherLableLeftPartContent);
+                        fatherIdMsg = get_left_lable_id_msg(fatherLableLeftPartContent);
+                        fatherLableName = fatherMsg.lableName;
+                        if(fatherClassMsg== "NULL" && fatherIdMsg =="NULL")
+                        {
+                            lableStack.pop();
+                            fatherMsg2 = lableStack.top();
+                            fatherLableLeftPartContent = content.substr(fatherMsg2.beginIndex,fatherMsg2.endIndex - fatherMsg2.beginIndex +1);
+                            fatherClassMsg = get_left_lable_class_msg(fatherLableLeftPartContent);
+                            fatherIdMsg = get_left_lable_id_msg(fatherLableLeftPartContent);
+                            fatherLableName = fatherMsg2.lableName;
+                            lableStack.push(fatherMsg);
+                        }
+                    }
+                    lf.fatherLableClassMessage = fatherClassMsg;
+                    lf.fatherLableName = fatherLableName;
+                    lf.fatherLableIdMessage = fatherIdMsg;
+
                     //ret.push_back(lf);
                     if(lableName == "i")
                     {
@@ -769,16 +829,16 @@ vector<struct lableFeature> get_content_lable_feature_1124(string content){
                     }
                     else
                         ret.push_back(lf);
-                    content.erase(content.begin() + topMsg.endIndex+1,content.begin() + msg.beginIndex);
-                    msg.beginIndex -= content_between_topLable_and_leftLable.size();
-                    msg.endIndex -= content_between_topLable_and_leftLable.size();
-                    lableStack.top().leafLableFlag = false;
+                    lableStack.push(topMsg);
+                    
                     lableStack.push(msg);
+                    
                     findPostIndex = msg.endIndex +1;
+                    
                 }
             }
         }
-        else   //右标签
+        else //右标签
         {
             if(lableStack.empty())
             {
@@ -835,10 +895,64 @@ vector<struct lableFeature> get_content_lable_feature_1124(string content){
                     vector<string> lableAttributeVector = get_lable_attribute_vector(lableLeftPartContent);
                     int lableLevelNumber = lableStack.size();
                     //网站信息定义为a标签，这样做：1、避免在聚类时候影响文本簇的选择，2、如果正文中有“All Rights Reserved”，也不会影响文本提取；
-                    if(lableContent.find("All Rights Reserved") != string::npos || lableContent.find("【免责声明】") != string::npos || (lableContent.find("sohu.com")!= string::npos &&  lableContent.find("http://")!= string::npos ) )
+                    if(lableContent.find("All Rights Reserved") != string::npos || lableContent.find("【免责声明】") != string::npos || (lableContent.find("sohu.com")!= string::npos &&  lableContent.find("http://")!= string::npos ) ||(lableContent.find("网站运营：") != string::npos) ||((lableContent.find("法律事务：") != string::npos) && (lableContent.find("电子邮件：") != string::npos) ))
                         lableName = "a";
                     struct lableFeature lf(lableName,lableContent,lableLeftPartContent,lableBeginIndex,lableEndIndex,
                                            lableId++,lableContentLength,lableLeftPartLength,lableRightPartLength,lablePunctNumber,lableAttributeVector,lableLevelNumber);
+
+                    //ret.push_back(lf);
+                    content.erase(content.begin() + topMsg.beginIndex,content.begin() + msg.endIndex +1);
+                    findPostIndex = topMsg.beginIndex;
+                    lableStack.pop();
+                    
+                    //topMsg = lableStack.top();
+                    //lableStack.pop();
+                    lableMsg fatherMsg,fatherMsg2;
+                    string fatherLableLeftPartContent;
+                    string fatherClassMsg,fatherIdMsg;
+                    string fatherLableName;
+                    if (lableStack.empty()) {
+                        fatherLableName ="NULL";
+                        fatherClassMsg = "NULL";
+                        fatherIdMsg = "NULL";
+                    }
+                    else
+                    {
+                        fatherMsg = lableStack.top();
+                        fatherLableLeftPartContent = content.substr(fatherMsg.beginIndex,fatherMsg.endIndex - fatherMsg.beginIndex +1);
+                        fatherClassMsg = get_left_lable_class_msg(fatherLableLeftPartContent);
+                        fatherIdMsg = get_left_lable_id_msg(fatherLableLeftPartContent);
+                        fatherLableName = fatherMsg.lableName;
+                        if(fatherClassMsg== "NULL" && fatherIdMsg=="NULL")
+                        {
+                            lableStack.pop();
+                            if (lableStack.empty()) {
+                                fatherLableName ="NULL";
+                                fatherClassMsg = "NULL";
+                                fatherIdMsg = "NULL";
+                                lableStack.push(fatherMsg);
+                            }
+                            else{
+                                fatherMsg2 = lableStack.top();
+                                fatherLableLeftPartContent = content.substr(fatherMsg2.beginIndex,fatherMsg2.endIndex - fatherMsg2.beginIndex +1);
+                                fatherClassMsg = get_left_lable_class_msg(fatherLableLeftPartContent);
+                                fatherIdMsg = get_left_lable_id_msg(fatherLableLeftPartContent);
+                                fatherLableName = fatherMsg2.lableName;
+                                lableStack.push(fatherMsg);
+                            }
+
+                        }
+                    }
+                    lf.fatherLableClassMessage = fatherClassMsg;
+                    lf.fatherLableName = fatherLableName;
+                    lf.fatherLableIdMessage = fatherIdMsg;
+                    /*
+                    lableMsg fatherMsg = lableStack.top();
+                    string fatherLableLeftPartContent = content.substr(fatherMsg.beginIndex,fatherMsg.endIndex - fatherMsg.beginIndex +1);
+                    string fatherClassMsg = get_left_lable_class_msg(fatherLableLeftPartContent);
+                    lf.fatherLableClassMessage = fatherClassMsg;
+                    lf.fatherLableName = fatherMsg.lableName;
+                    */
                     if(lableName == "i")
                     {
                         if( lableContent.find("http") == 0 && ( (lableContent.find("jpg") == lableContent.size() - 3) ||(lableContent.find("JPG") == lableContent.size() - 3 ) ) )
@@ -848,10 +962,6 @@ vector<struct lableFeature> get_content_lable_feature_1124(string content){
                     }
                     else
                         ret.push_back(lf);
-                    //ret.push_back(lf);
-                    content.erase(content.begin() + topMsg.beginIndex,content.begin() + msg.endIndex +1);
-                    findPostIndex = topMsg.beginIndex;
-                    lableStack.pop();
                 }
             }
             else
@@ -1006,7 +1116,7 @@ string  print_page_content_by_id(vector<struct lableFeature>lf,vector<int> id,st
         tmpstring +="\t\t a 标签的个数大于一半，非新闻网页 \n";
         cout<<"a 标签的个数大于一半，非新闻网页。标签总数："<<id.size() <<"  a标签数量："<<cluster_id_information_vect[4]<<endl;
     }
-    if( cluster_id_information_vect[9] > lableDistance.size() - cluster_id_information_vect[9])
+    if( cluster_id_information_vect[9] > lableDistance.size() - cluster_id_information_vect[9] && id.size() >2)
     {
         if_not_is_a_news_web_page_flag = true;
         tmpstring +="\t\t 标签之间距离大约40的个数大于标签距离小于40的个数，非新闻网页\n";
@@ -1022,8 +1132,8 @@ string  print_page_content_by_id(vector<struct lableFeature>lf,vector<int> id,st
     if(cluster_id_information_vect[1] < 30)
     {
         if_not_is_a_news_web_page_flag = true;
-        tmpstring +="\t\t平均文本距离小于150，非新闻网页\n";
-        cout<<"平均文本距离小于150，非新闻网页"<<endl;
+        tmpstring +="\t\t平均文本距离小于30，非新闻网页\n";
+        cout<<"平均文本距离小于30，非新闻网页"<<endl;
     }
     
     if(cluster_id_information_vect[2] < 5 && cluster_id_information_vect[1] < 60 )
@@ -1075,6 +1185,8 @@ string  print_page_content_by_id(vector<struct lableFeature>lf,vector<int> id,st
     {
         cout<<"LableId:"<<id[i]<< "--Level:"<<lf[id[i]].lableLevelNumber;
         cout<<"--Name:"<<lf[id[i]].lableName<<"--BeginIndex:"<<lf[id[i]].lableBeginIndex<<"--EndIndex:"<<lf[id[i]].lableEndIndex;
+        cout<<"--fatherLableName:"<<lf[id[i]].fatherLableName<<"--fatherlableClassMsg:"<<lf[id[i]].fatherLableClassMessage;
+        cout<<"--fatherIdMsg:"<<lf[id[i]].fatherLableIdMessage;
         cout<<"  --->"<< lf[id[i]].lableContent<<endl;
         if(tmp_map.find(lf[id[i]].lableContent) == tmp_map.end())
         {
@@ -1085,18 +1197,7 @@ string  print_page_content_by_id(vector<struct lableFeature>lf,vector<int> id,st
             tmp_map[lf[id[i]].lableContent] = id[i];
             continue;
         }
-            
-        //cout<<lf[id[i]].lableContent[0]<<"=="<<lf[id[i]].lableContent[1]<<endl;
-        //cout<<"content2:"<<lf[id[i]].lableContent.substr(0,2)<<endl;
-        //cout<<"content4:"<<lf[id[i]].lableContent.substr(0,4)<<endl;
-        //cout<<"content6:"<<lf[id[i]].lableContent.substr(0,6)<<endl;
-        /*
-        if(lf[id[i]].lableContent.substr(0,2) == "\343\200")
-        {
-            //cout<<"yest"<<endl;
-            page_text += "\n";
-        }
-         */
+        
         if(lf[id[i]].lableContent.find("http") == 0 && ( (lf[id[i]].lableContent.find("jpg") == lf[id[i]].lableContent.size() - 3) ||(lf[id[i]].lableContent.find("JPG") == lf[id[i]].lableContent.size() - 3 ) ))
         {
             continue;
@@ -1484,7 +1585,6 @@ vector<int> get_page_text_cluster_id_after_produce(vector<struct lableFeature>lf
         {
             endID =i;
             continue;
-            
             //endID = i-1;
             //break;
         }
@@ -1930,11 +2030,12 @@ vector<int> get_include_lableid_by_a_lableId(vector<struct lableFeature>lf,int i
     for(int i=ret.size()-1; i>=0; i--)
     {
         //cout<<"lableName:"<< lableName<<"    name:"<<lf[ret[i]].lableName<<endl;
-        if(lf[ret[i]].lableName == lableName && (lf[ret[i]].lableName =="p" && lf[ret[i]].lableContentLength >= 300))
+        if(lf[ret[i]].lableName == lableName || (lf[ret[i]].lableName =="p" && lf[ret[i]].lableContentLength >= 300))
         {
             if(ret.size()-1 -i >=2)
             {
                 ret.erase(ret.begin()+i+1,ret.end());
+                cout<<"erase1: "<<*(ret.begin()+i+1) <<" to  "<< ret[ret.size()-1]<<endl;
                 break;
             }
             break;
@@ -1951,6 +2052,7 @@ vector<int> get_include_lableid_by_a_lableId(vector<struct lableFeature>lf,int i
         else
         {
             ret.erase(ret.begin()+j+1,ret.end());
+            cout<<"erase2: "<<*(ret.begin()+j+1) <<" to  "<< ret[ret.size()-1]<<endl;
             break;
         }
     }
@@ -1975,8 +2077,15 @@ vector<int> get_include_lableid_by_a_lableId(vector<struct lableFeature>lf,int i
             continue;
         }
         ret.erase(ret.begin(),ret.begin() + i);
+        cout<<"erase3: "<<ret[0] <<" to  "<< ret[i-1]<<endl;
         break;
     }
+    cout<<"ret_id:";
+    for(int i=0;i<ret.size();i++)
+    {
+        cout<<ret[i]<<" ";
+    }
+    cout<<endl;
     return ret;
 }
 
@@ -2020,16 +2129,16 @@ vector<int> get_page_text_cluster_id_after_produce_1210(vector<struct lableFeatu
         }
     }
     
+    //如果文本簇中只有两个ID，且长度差不多，这时候要添加筛选，确定那个是文本lableName，可根据两个文本簇ID位置及其前后文本簇连续性进行判断
     if(ic.size() == 2 && lf[ic[0]].lableName != lf[ic[1]].lableName)
     {
         //靠近尾部时，确定为网页链接信息
         if(ic[1] >= lf.size() * 92/100)
         {
-            lableName = lableName = lf[ic[0]].lableName;
+            lableName = lf[ic[0]].lableName;
         }
         else
         {
-            //如果文本簇中只有两个ID，且长度差不多，这时候要添加筛选，确定那个是文本lableName，可根据两个文本簇ID位置及其前后文本簇连续性进行判断
             int num0 = 0;
             int num1 = 0;
             for(int i=ic[0];i>0;i--)
@@ -2159,7 +2268,12 @@ vector<int> get_page_text_cluster_id_after_produce_1210(vector<struct lableFeatu
     begin_end_id.push_back(ret0[0]);
     begin_end_id.push_back(ret0[ret0.size()-1]);
     each_center_id_vect.push_back(begin_end_id);
-    
+    /*
+    cout<<"ret_set:";
+    for(set<int>::iterator iter = ret_set.begin(); iter != ret_set.end(); iter++)
+        cout<<*iter<<" ";
+    cout<<endl;
+     */
     for(int i=1;i<tmp_ic.size() ;i++)
     {
         if(lf[tmp_ic[i]].lableId - lf[tmp_ic[i-1]].lableId == 1 && ret_set.find(lf[tmp_ic[i]].lableId) != ret_set.end() )
@@ -2196,7 +2310,15 @@ vector<int> get_page_text_cluster_id_after_produce_1210(vector<struct lableFeatu
         {
             ret_set.insert(ret0[i]);
         }
+        /*
+        cout<<"ret_set:";
+        for(set<int>::iterator iter = ret_set.begin(); iter != ret_set.end(); iter++)
+            cout<<*iter<<" ";
+        cout<<endl;
+        cout<<endl;
+         */
     }
+
     int len_center = each_center_id_vect.size();
     cout<<"-------center_len= "<<len_center<<endl;
     //当有多个文本中心时，尽量去判断非正文的中心
@@ -2305,7 +2427,6 @@ int save_content2file(string file_path_name,string content)
     cfile << content;
     cfile.close();
     return 1;
-    
 }
 
 
@@ -2779,7 +2900,6 @@ vector<struct lableFeature>  news_sina_page_produce(vector<struct lableFeature> 
     return lf;
 }
 
-
 int main_loop_url_AGENS(string url,int kcluster = 5)
 {
     //请求爬去html网页
@@ -2851,7 +2971,16 @@ int main_loop_url_AGENS(string url,int kcluster = 5)
             print_content_by_kmeansCluster(lable_feature, lableId_cluster, kCenter,i);
         }
         
-        int page_text_cluster_k = kmeans.get_page_text_cluster_k();
+        //int page_text_cluster_k = kmeans.get_page_text_cluster_k();
+        
+        //直接根据聚类中心选择文本簇
+        int page_text_cluster_k_1 = kmeans.get_page_text_cluster_k();
+        //根据各个簇中的top3进行选择
+        int page_text_cluster_k = kmeans.get_page_text_cluster_k_1224();
+        if(page_text_cluster_k != page_text_cluster_k_1)
+        {
+            cout<<"let's see\n";
+        }
         
         //vector<int> page_text_id_vector =  get_page_text_cluster_id_after_produce(lable_feature, lableId_cluster, page_text_cluster_k);
         string selectLableName;
@@ -2954,20 +3083,17 @@ int main_loop_file_AGENS(string url,int kcluster = 5)
         feature_vector = get_feature_vector(lable_feature);
     }
     
-    
     int KC =kcluster;
     try
     {
         //kmeansCluster kmeans(feature_vector);
         //kmeans.kmeans_with_select_k_function(KC);
         //kmeans.kmeans_plus_plus_function();
-        
         AGENSCluster kmeans(feature_vector);
         kmeans.AGENS(KC);
         //two_split_K_Means  kmeans(feature_vector);
         //kmeans.twoSplitKmeansFunction(8);
         KC = kmeans.get_K();
-        
         //打印聚类中心
         for(int i=1;i<=KC;i++)
             kmeans.print_kmeans_cluster(i);
@@ -2976,15 +3102,19 @@ int main_loop_file_AGENS(string url,int kcluster = 5)
         vector<Feature> kCenter = kmeans.get_kCenter();
         vector< vector<Feature> > cluster = kmeans.get_cluster();
         
-        
         //打印分类簇信息
         for(int i=1;i<=KC; i++)
         {
             print_content_by_kmeansCluster(lable_feature, lableId_cluster, kCenter,i);
         }
-        
-        int page_text_cluster_k = kmeans.get_page_text_cluster_k();
-        
+        //直接根据聚类中心选择文本簇
+        int page_text_cluster_k_1 = kmeans.get_page_text_cluster_k();
+        //根据各个簇中的top3进行选择
+        int page_text_cluster_k = kmeans.get_page_text_cluster_k_1224();
+        if(page_text_cluster_k != page_text_cluster_k_1)
+        {
+            cout<<"let's see\n";
+        }
         //vector<int> page_text_id_vector =  get_page_text_cluster_id_after_produce(lable_feature, lableId_cluster, page_text_cluster_k);
         string selectLableName;
         //vector<int> page_text_id_vector =  get_page_text_cluster_id_after_produce(lable_feature, lableId_cluster, page_text_cluster_k,selectLableName);
@@ -3033,7 +3163,6 @@ int main_loop_file_AGENS(string url,int kcluster = 5)
         
         cout<<"该网页的标签特征太少，可能不是新闻网页"<<endl;
     }
-    
     return 1;
 }
 
@@ -3198,10 +3327,13 @@ void testFunction(string path,bool timeTest = false)
     cout<<"begin index: ";
     cin >> loop_time;
     int i=0;
+    if(loop_time >= total_time)
+        return;
     while(i++<loop_time)
     {
         iter ++;
     }
+
     time_t tm_begin = time(NULL);
     cout<<"begin: "<<ctime(&tm_begin)<<endl;
 
@@ -3244,10 +3376,45 @@ void testFunction(string path,bool timeTest = false)
     cout<<"begin: "<<ctime(&tm_begin)<<endl;
     cout<<"end:   "<<ctime(&tm_end)<<endl;
 }
+/*
+int xmlParser(string files){
+    xmlDocPtr doc;
+    xmlNodePtr curNode;
+    xmlChar *key;
+    doc = xmlReadFile(files.c_str(), "utf-8", 256);
+    if(doc == NULL)
+    {
+        cout<<"xml open error!"<<endl;
+        cout<<strerror(errno)<<endl;
+    }
+    else
+        cout<<"xml open success!"<<endl;
+    
+    curNode = xmlDocGetRootElement(doc);
+    if(curNode == NULL)
+        cout<<"doc is empty"<<endl;
+    else
+    {
+        cout<< curNode->name<<endl;
+    }
+    
+    curNode = curNode->children;
+    while(curNode != NULL)
+    {
+        key = xmlNodeGetContent(curNode);
+        cout<<key<<endl;
+        curNode = curNode->next;
+        cout<<"---------------------------"<<endl;
+        xmlFree(key);
+    }
+    cout<<"endl"<<endl;
+    return 0;
+}
+*/
 int main()
 {
     testFunction("/Users/pc/UrlFile/url_dict_file.txt");
-    return 1;
+    //return 1;
     //testUrlClass tuc;
     //tuc.get_weilaiwang_test_url();
     //get_test_url("http://www.hexun.com/");
@@ -3321,9 +3488,9 @@ int main()
     }
     //main_loop_file_twoSplitKmeans("/Users/pc/cul_sohu_file.html",6);
     //main_loop_url_twoSplitKmeans("http://www.edf.uestc.edu.cn/index.php?m=content&c=index&a=lists&catid=144",6);
-    //main_loop_url_AGENS("http://hk.eastmoney.com/news/1532,20151218576996612.html",4);
+    //main_loop_url_AGENS("http://gb.cri.cn/42071/2015/12/18/7651s5201993.htm",4);
     string urlGoogle("http://www.chicagotribune.com/news/local/politics/ct-rahm-emanuel-police-task-force-20151130-story.html");
-    main_loop_file_AGENS("/Users/pc/uestc.html",4);
+    main_loop_file_AGENS("/Users/pc/207.html",3);
     //main_loop_url("http://hackathon.ele.me/intro");
     //main_loop_file_twoSplitKmeans("http://www.iteye.com/topic/587673",4);
     //main_loop_file_kmeans("http://www.iteye.com/topic/587673",6);

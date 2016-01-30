@@ -45,12 +45,14 @@ public:
     {
         K = 2;
         //初始化
-        if(initFeatureVector.size() == 0)
+        if(initFeatureVector.size() < 1)
         {
             throw 1;
         }
+        /*
         if(initFeatureVector.size() < 2)
             throw 3;
+         */
         /*
          if(featureVector.size() < K)
          {
@@ -74,6 +76,7 @@ public:
     vector<Feature> get_kCenter(){
         return kCenter;
     }
+    
     
     //获取每个簇的标签ID
     vector< vector<int> > get_lableId_from_cluster()
@@ -146,17 +149,52 @@ public:
         }
     }
     
+    static bool cmp(Feature f1,Feature f2)
+    {
+        return f1[1] > f2[1];
+    }
+    //获取某个簇top 3的平均长度和平均标签数
+    vector<int> get_top3_average_value(int tmp_k)
+    {
+        vector<int> ret;
+        vector<Feature>  tmp_cluster = cluster[tmp_k];
+        vector<Feature> top3vect;
+        
+        if(tmp_cluster.size() >3)
+        {
+            sort(tmp_cluster.begin(),tmp_cluster.end(),cmp);
+            top3vect.push_back(tmp_cluster[0]);
+            top3vect.push_back(tmp_cluster[1]);
+            top3vect.push_back(tmp_cluster[2]);
+        }
+        else
+        {
+            top3vect = tmp_cluster;
+        }
+        
+        int average_len = 0;
+        int average_punch = 0;
+        for(int i=0;i<top3vect.size();i++)
+        {
+            average_len += top3vect[i][1];
+            average_punch += top3vect[i][4];
+        }
+        ret.push_back(float(average_len)/float(top3vect.size()));
+        ret.push_back(float(average_punch)/float(top3vect.size()));
+        ret.push_back(top3vect.size());
+        return ret;
+    }
     //根据簇中心向量的标签文本平均长度来确定文本簇，目前长度+标点符号数的大小来定义为特征簇（待优化）
     int get_page_text_cluster_k()
     {
         int tmp_k = 0;
         int tmp_len = kCenter[0][1] + kCenter[0][4];
-        
         for(int i=1;i<K; i++)
         {
             if(kCenter[i][1] < kCenter[i][4])
                 continue;
-            
+            if(kCenter[tmp_k][1] > kCenter[i][1])
+                continue;
             if(kCenter[i][1] + kCenter[i][4] > tmp_len)
             {
                 tmp_len = kCenter[i][1] + kCenter[i][4] ;
@@ -165,12 +203,35 @@ public:
         }
         return tmp_k+1;
     }
-    //自顶向小层次聚类的主函数
+    
+    //根据各个簇的top3的平均长度进行确定
+    int get_page_text_cluster_k_1224()
+    {
+        int k_by_cluster = get_page_text_cluster_k();
+        k_by_cluster --;
+        int tmp_k = 0;
+        vector<int>  t_av = get_top3_average_value(0);
+        int tmp_len = t_av[0];
+        
+        for(int i=1;i<K; i++)
+        {
+            t_av = get_top3_average_value(i);
+            if(tmp_len < t_av[0])
+            {
+                tmp_len = t_av[0];
+                tmp_k = i;
+            }
+        }
+        return tmp_k+1;
+    }
+
+    //自顶向下层次聚类的主函数
     void AGENS(int max_k = 5)
     {
         if(featureVector.size() < max_k)
         {
-            throw 2;
+            //throw 2;
+            max_k = featureVector.size();
         }
         
         K = max_k;
@@ -457,7 +518,6 @@ private:
         }
         return;
     }
-    
     //获取聚类簇集的SSE值（平方误差）
     double get_SSE(vector< vector<Feature> > cluster)
     {

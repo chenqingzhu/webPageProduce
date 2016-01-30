@@ -243,12 +243,31 @@ public:
             {
                 break;
             }
+            
             int scriptEndIndex = content.find("->",scriptBeginIndex);
             if(scriptEndIndex == string::npos)
             {
                 break;
             }
-            
+            while(1)
+            {
+                if(isalpha(content[scriptEndIndex+2]) || content[scriptEndIndex+2]=='_')
+                {
+                    scriptEndIndex = content.find("->",scriptEndIndex+2);
+                    if(scriptEndIndex == string::npos)
+                    {
+                        break;
+                    }
+                }
+                else
+                {
+                    break;
+                }
+            }
+            if(scriptEndIndex == string::npos)
+            {
+                break;
+            }
             findPostIndex= scriptBeginIndex;
             if(content[scriptEndIndex+2] == '\n')
             {

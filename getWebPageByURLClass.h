@@ -383,10 +383,7 @@ public:
         //提取标题
         findPageTitle(content);
         return content;
-        
     }
-    
-    
     string get_web_page_title()
     {
         return web_page_title;

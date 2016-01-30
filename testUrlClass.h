@@ -147,7 +147,7 @@ public:
         {
             getWebPageClass gwp;
             string urlStringToFile = gwp.get_url_from_web_page_by_url(vecturl[i]);
-            //save_content2file(, <#string content#>)
+            
             stringstream ss;
             ss <<"/Users/pc/UrlFile/huanqiu_url_"<<i<<".txt";
             save_content2file(ss.str(), urlStringToFile);

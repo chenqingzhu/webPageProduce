@@ -31,11 +31,11 @@ typedef vector<double> Feature;
 
 //标签结构体
 struct lableMsg{
-    string lableName;   //标签名
-    int beginIndex;  //标签开始位置
-    int endIndex;   //标签结束位置
-    int lableFlag;   //左右标签标识
-    bool leafLableFlag; //是否是叶子标签  ==>也用于提取标签信息时候判断该标签是不是第一个被访问，即是否被左左标签提取过
+    string lableName;           //标签名
+    int beginIndex;             //标签开始位置
+    int endIndex;               //标签结束位置
+    int lableFlag;              //左右标签标识
+    bool leafLableFlag;         //是否是叶子标签  ==>也用于提取标签信息时候判断该标签是不是第一个被访问，即是否被左左标签提取过
     lableMsg (string name="", int begin=0, int end=0,int flag=0,bool leafFlag=true) : lableName(name), beginIndex(begin),
     endIndex(end),lableFlag(flag),leafLableFlag(leafFlag)
     {}
@@ -65,13 +65,16 @@ struct lableFeature{
     int lablePunctNumber;                       // 标签中标点符号的数量
     vector<string>  lableAttributeVector;       // 标签存在的属性
     int lableLevelNumber;                       // 标签层次树
+    string fatherLableName;                     // 父节点名
+    string fatherLableClassMessage;             // 父节点class 属性
+    string fatherLableIdMessage;                // 父节点id属性
     lableFeature(string name,string content, string leftPartContent,int beginIndex,int endIndex,int id,
                  int contentLength,int leftPartLength, int rightPartLength,int punchNumber,
                  vector<string> attributeVector, int levelNumber):lableName(name),
     lableContent(content),
     lableLeftPartContent(leftPartContent),lableBeginIndex(beginIndex),lableEndIndex(endIndex),lableId(id),lableContentLength(contentLength),
     lableLeftPartLength(leftPartLength),lableRightPartLength(rightPartLength),lablePunctNumber(punchNumber),
-    lableAttributeVector(attributeVector),lableLevelNumber(levelNumber)
+    lableAttributeVector(attributeVector),lableLevelNumber(levelNumber),fatherLableName("NULL"),fatherLableClassMessage("NULL"),fatherLableIdMessage("NULL")
     {
     }
 };
